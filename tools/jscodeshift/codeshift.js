@@ -4,7 +4,7 @@ const path = require('node:path');
 const { run: jscodeshift } = require('jscodeshift/src/Runner');
 
 const transformPath = path.resolve('./tools/jscodeshift/convert-enzyme-to-rtl.js');
-const paths = ['./src/tests/'];
+const paths = ['./src/tests/unit/tests/common/components/gear-menu-button.test.tsx'];
 const options = {
     // dry: true,
     // print: true,
