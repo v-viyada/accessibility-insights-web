@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 import { PrimaryButton } from '@fluentui/react';
 import { Checkbox } from '@fluentui/react';
-import * as Enzyme from 'enzyme';
+import { fireEvent, render } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import * as React from 'react';
+import { getMockComponentClassPropsForCall, mockReactComponents } from 'tests/unit/mock-helpers/mock-module-helpers';
 import { NewTabLink } from '../../../../../common/components/new-tab-link';
 import { PrivacyStatementPopupText } from '../../../../../common/components/privacy-statement-text';
 import { TelemetryNotice } from '../../../../../common/components/telemetry-notice';
@@ -14,8 +16,12 @@ import {
     TelemetryPermissionDialogProps,
 } from '../../../../../common/components/telemetry-permission-dialog';
 import { UserConfigMessageCreator } from '../../../../../common/message-creators/user-config-message-creator';
+import '@testing-library/jest-dom';
 
+jest.mock('../../../../../common/components/privacy-statement-text');
+jest.mock('../../../../../common/components/telemetry-notice');
 describe('TelemetryPermissionDialogTest', () => {
+    mockReactComponents([TelemetryNotice, PrivacyStatementPopupText]);
     let userConfigMessageCreatorStub: SetTelemetryStateMessageCreator;
     let setTelemetryStateMock: () => null;
 
@@ -42,16 +48,18 @@ describe('TelemetryPermissionDialogTest', () => {
             isFirstTime: true,
         };
 
-        const wrapper = Enzyme.shallow(<TelemetryPermissionDialog {...props} />);
+        const wrapper = render(<TelemetryPermissionDialog {...props} />);
+        expect(wrapper.asFragment()).toMatchSnapshot();
 
-        expect(wrapper.getElement()).toMatchSnapshot();
-        expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
+        const checkBox = wrapper.getByRole('checkbox');
+        expect(checkBox).toBeChecked();
+        // expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
 
-        const telemetryNotice = wrapper.find(TelemetryNotice);
-        expect(telemetryNotice.prop('deps').LinkComponent).toBe(props.deps.LinkComponent);
+        const telemetryNotice = getMockComponentClassPropsForCall(TelemetryNotice);
+        expect(telemetryNotice.deps.LinkComponent).toBe(props.deps.LinkComponent);
 
-        const privacyStatementPopupText = wrapper.find(PrivacyStatementPopupText);
-        expect(privacyStatementPopupText.prop('deps').LinkComponent).toBe(props.deps.LinkComponent);
+        const privacyStatementPopupText = getMockComponentClassPropsForCall(PrivacyStatementPopupText);
+        expect(privacyStatementPopupText.deps.LinkComponent).toBe(props.deps.LinkComponent);
     });
 
     test('toggle check box', () => {
@@ -60,16 +68,21 @@ describe('TelemetryPermissionDialogTest', () => {
             isFirstTime: true,
         };
 
-        const wrapper = Enzyme.shallow(<TelemetryPermissionDialog {...props} />);
-        const checkBox = wrapper.find(Checkbox);
-        expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
-        checkBox.props().onChange(null, false);
-        expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: false });
-        checkBox.props().onChange(null, true);
-        expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
+        const wrapper = render(<TelemetryPermissionDialog {...props} />);
+        const checkBox = wrapper.getByRole('checkbox');
+        expect(checkBox).toBeChecked();
+        //expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
+        fireEvent.click(checkBox);
+        //checkBox.props().onChange(null, false);
+        expect(checkBox).not.toBeChecked();
+        //expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: false });
+        fireEvent.click(checkBox);
+        //checkBox.props().onChange(null, true);
+        expect(checkBox).toBeChecked();
+        //expect(wrapper.state()).toMatchObject({ isEnableTelemetryChecked: true });
     });
 
-    test('button click', () => {
+    test('button click', async () => {
         const props: TelemetryPermissionDialogProps = {
             deps: {
                 userConfigMessageCreator: userConfigMessageCreatorStub,
@@ -77,9 +90,9 @@ describe('TelemetryPermissionDialogTest', () => {
             isFirstTime: true,
         };
 
-        const wrapper = Enzyme.shallow(<TelemetryPermissionDialog {...props} />);
-        const button = wrapper.find(PrimaryButton);
-        button.simulate('click');
-        expect(setTelemetryStateMock).toBeCalled();
+        const wrapper = render(<TelemetryPermissionDialog {...props} />);
+        //const button = wrapper.querySelector(PrimaryButton);
+        await userEvent.click(wrapper.getByRole('button'));
+        expect(setTelemetryStateMock).toHaveBeenCalledTimes(1);
     });
 });

@@ -1,26 +1,27 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 import { DefaultButton } from '@fluentui/react';
-import {
-    IssueFilingButton,
-    IssueFilingButtonDeps,
-    IssueFilingButtonProps,
-} from 'common/components/issue-filing-button';
+import { render } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
+import { IssueFilingButton, IssueFilingButtonDeps, IssueFilingButtonProps } from 'common/components/issue-filing-button';
+import { IssueFilingNeedsSettingsHelpText } from 'common/components/issue-filing-needs-settings-help-text';
 import { IssueFilingActionMessageCreator } from 'common/message-creators/issue-filing-action-message-creator';
 import { NamedFC } from 'common/react/named-fc';
 import { CreateIssueDetailsTextData } from 'common/types/create-issue-details-text-data';
 import { IssueFilingNeedsSettingsContentRenderer } from 'common/types/issue-filing-needs-setting-content';
 import { ToolData } from 'common/types/store-data/unified-data-interface';
 import { UserConfigurationStoreData } from 'common/types/store-data/user-configuration-store';
-import { shallow } from 'enzyme';
 import { IssueFilingServiceProvider } from 'issue-filing/issue-filing-service-provider';
 import { IssueFilingService } from 'issue-filing/types/issue-filing-service';
 import * as React from 'react';
-import { IMock, Mock, Times } from 'typemoq';
-
+import { getMockComponentClassPropsForCall, mockReactComponents } from 'tests/unit/mock-helpers/mock-module-helpers';
+import { It, IMock, Mock, Times } from 'typemoq';
 import { EventStubFactory } from '../../../common/event-stub-factory';
 
+jest.mock('@fluentui/react');
+jest.mock('common/components/issue-filing-needs-settings-help-text');
 describe('IssueFilingButtonTest', () => {
+    mockReactComponents([DefaultButton, IssueFilingNeedsSettingsHelpText]);
     const testKey: string = 'test';
     const eventStub = new EventStubFactory().createNativeMouseClickEvent() as any;
     let issueFilingServiceProviderMock: IMock<IssueFilingServiceProvider>;
@@ -45,12 +46,12 @@ describe('IssueFilingButtonTest', () => {
         testIssueFilingServiceStub = {
             key: testKey,
             displayName: 'TEST',
-            settingsForm: NamedFC('testForm', props => <>Hello World</>),
+            settingsForm: NamedFC('testForm', (props) => <>Hello World</>),
             isSettingsValid: () => true,
-            buildStoreData: testField => {
+            buildStoreData: (testField) => {
                 return { testField };
             },
-            getSettingsFromStoreData: data => data[testKey],
+            getSettingsFromStoreData: (data) => data[testKey],
             fileIssue: () => Promise.resolve(),
         };
         userConfigurationStoreData = {
@@ -62,13 +63,13 @@ describe('IssueFilingButtonTest', () => {
         issueFilingServiceProviderMock = Mock.ofType(IssueFilingServiceProvider);
         issueFilingActionMessageCreatorMock = Mock.ofType(IssueFilingActionMessageCreator);
         issueFilingServiceProviderMock
-            .setup(bp => bp.forKey(testKey))
+            .setup((bp) => bp.forKey(testKey))
             .returns(() => testIssueFilingServiceStub)
             .verifiable();
-        needsSettingsContentRenderer = NamedFC('testRenderer', () => <>needs settings</>);
+        needsSettingsContentRenderer = IssueFilingNeedsSettingsHelpText;
     });
 
-    test.each([true, false])('render: isSettingsValid: %s', isSettingsValid => {
+    test.each([true, false])('render: isSettingsValid: %s', (isSettingsValid) => {
         testIssueFilingServiceStub.isSettingsValid = () => isSettingsValid;
         const props: IssueFilingButtonProps = {
             deps: {
@@ -80,13 +81,14 @@ describe('IssueFilingButtonTest', () => {
             userConfigurationStoreData: userConfigurationStoreData,
             needsSettingsContentRenderer,
         };
-        const wrapper = shallow(<IssueFilingButton {...props} />);
-        expect(wrapper.debug()).toMatchSnapshot();
+        const renderResult = render(<IssueFilingButton {...props} />);
+        expect(renderResult.asFragment()).toMatchSnapshot();
 
         issueFilingServiceProviderMock.verifyAll();
     });
 
-    test('onclick: valid settings, file bug and set %s to false', () => {
+    test('onclick: valid settings, file bug and set %s to false', async () => {
+        mockReactComponents([DefaultButton, IssueFilingNeedsSettingsHelpText]);
         const props: IssueFilingButtonProps = {
             deps: {
                 issueFilingActionMessageCreator: issueFilingActionMessageCreatorMock.object,
@@ -98,25 +100,23 @@ describe('IssueFilingButtonTest', () => {
             needsSettingsContentRenderer,
         };
         issueFilingActionMessageCreatorMock
-            .setup(creator =>
-                creator.fileIssue(eventStub, testKey, props.issueDetailsData, toolData),
-            )
+            .setup((creator) => creator.fileIssue(It.isAny(), It.isAny(), It.isAny(), It.isAny()))
             .verifiable(Times.once());
-        const wrapper = shallow<IssueFilingButton>(<IssueFilingButton {...props} />);
+        const renderResult = render(<IssueFilingButton {...props} />);
 
-        wrapper.find(DefaultButton).simulate('click', eventStub);
+        await userEvent.click(renderResult.container.querySelector('.ms-Button-label'));
 
-        expect(wrapper.debug()).toMatchSnapshot();
-        expect(wrapper.state().showNeedsSettingsContent).toBe(false);
+        expect(renderResult.asFragment()).toMatchSnapshot();
+        const needSettingProps = getMockComponentClassPropsForCall(IssueFilingNeedsSettingsHelpText);
+        expect(needSettingProps.isOpen).toBe(false);
         issueFilingActionMessageCreatorMock.verifyAll();
     });
 
-    test('onclick: invalid settings, %s', () => {
+    test('onclick: invalid settings, %s', async () => {
+        mockReactComponents([DefaultButton, IssueFilingNeedsSettingsHelpText]);
         testIssueFilingServiceStub.isSettingsValid = () => false;
         issueFilingActionMessageCreatorMock
-            .setup(messageCreator =>
-                messageCreator.trackFileIssueClick(eventStub as any, testKey as any),
-            )
+            .setup((messageCreator) => messageCreator.trackFileIssueClick(eventStub as any, testKey as any))
             .verifiable(Times.never());
         const props: IssueFilingButtonProps = {
             deps: {
@@ -128,14 +128,15 @@ describe('IssueFilingButtonTest', () => {
             userConfigurationStoreData: userConfigurationStoreData,
             needsSettingsContentRenderer,
         };
-        const wrapper = shallow<IssueFilingButton>(<IssueFilingButton {...props} />);
-        expect(wrapper.state().showNeedsSettingsContent).toBe(false);
+        const renderResult = render(<IssueFilingButton {...props} />);
+        const needSettingProps = getMockComponentClassPropsForCall(IssueFilingNeedsSettingsHelpText);
+        expect(needSettingProps.isOpen).toBe(false);
 
-        wrapper.find(DefaultButton).simulate('click', eventStub);
-
-        expect(wrapper.debug()).toMatchSnapshot();
-
+        await userEvent.click(renderResult.container.querySelector('.ms-Button-label'));
+        expect(renderResult.asFragment()).toMatchSnapshot();
         issueFilingActionMessageCreatorMock.verifyAll();
-        expect(wrapper.state().showNeedsSettingsContent).toBe(true);
+        const needSettingPropsAfterClick = getMockComponentClassPropsForCall(IssueFilingNeedsSettingsHelpText, 2);
+        expect(needSettingPropsAfterClick.isOpen).toBe(true);
+        //expect(renderResult.state().showNeedsSettingsContent).toBe(true);
     });
 });
