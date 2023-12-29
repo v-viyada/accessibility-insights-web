@@ -1,29 +1,29 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`PrivacyStatementPopupText renders 1`] = `
-<React.Fragment>
-  You can change this choice anytime in settings.
-   
-  <PrivacyStatementText
-    deps={
-      {
-        "LinkComponent": [Function],
-      }
-    }
-  />
-</React.Fragment>
+<DocumentFragment>
+  You can change this choice anytime in settings. Read our 
+  <a
+    class="ms-Link insights-link root-109"
+    href="http://go.microsoft.com/fwlink/?LinkId=521839"
+    target="_blank"
+  >
+    privacy statement
+  </a>
+   to learn more.
+</DocumentFragment>
 `;
 
 exports[`PrivacyStatementText renders 1`] = `
-<React.Fragment>
-  Read our
-   
-  <NewTabLink
+<DocumentFragment>
+  Read our 
+  <a
+    class="ms-Link insights-link root-109"
     href="http://go.microsoft.com/fwlink/?LinkId=521839"
+    target="_blank"
   >
     privacy statement
-  </NewTabLink>
-   
-  to learn more.
-</React.Fragment>
+  </a>
+   to learn more.
+</DocumentFragment>
 `;

@@ -30,6 +30,7 @@ describe('GearMenuButton', () => {
 
             const renderResult = render(<GearMenuButton {...props} />);
             expect(renderResult.asFragment()).toMatchSnapshot();
+            expectMockedComponentPropsToMatchSnapshots([IconButton]);
         });
 
         it('no down chevron menu icon', () => {
